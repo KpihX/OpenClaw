@@ -93,8 +93,8 @@ export async function runTui(opts: TuiOptions) {
   let historyLoaded = false;
   let isConnected = false;
   let wasDisconnected = false;
-  let toolsExpanded = false;
-  let showThinking = false;
+  let toolsExpanded = config.ui?.toolsExpanded ?? true;
+  let showThinking = config.ui?.showThinking ?? false;
 
   const deliverDefault = opts.deliver ?? false;
   const autoMessage = opts.message?.trim();

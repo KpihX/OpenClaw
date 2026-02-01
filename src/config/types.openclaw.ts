@@ -67,6 +67,10 @@ export type OpenClawConfig = {
   ui?: {
     /** Accent color for OpenClaw UI chrome (hex). */
     seamColor?: string;
+    /** Whether to expand tool outputs by default in the TUI. */
+    toolsExpanded?: boolean;
+    /** Whether to show thinking by default in the TUI. */
+    showThinking?: boolean;
     assistant?: {
       /** Assistant display name for UI surfaces. */
       name?: string;
