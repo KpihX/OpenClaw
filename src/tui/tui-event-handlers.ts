@@ -12,12 +12,6 @@ type EventHandlerContext = {
   refreshSessionInfo?: () => Promise<void>;
 };
 
-import * as fs from "fs";
-
-function debugLog(msg: string) {
-  fs.appendFileSync("/tmp/openclaw-tui.log", `[${new Date().toISOString()}] ${msg}\n`);
-}
-
 export function createEventHandlers(context: EventHandlerContext) {
   const { chatLog, tui, state, setActivityStatus, refreshSessionInfo } = context;
   const finalizedRuns = new Map<string, number>();
@@ -75,7 +69,6 @@ export function createEventHandlers(context: EventHandlerContext) {
       return;
     }
     const evt = payload as ChatEvent;
-    debugLog(`Chat Event Received: ${evt.state} - RunID: ${evt.runId}`);
     syncSessionKey();
     if (evt.sessionKey !== state.currentSessionKey) {
       return;
@@ -153,27 +146,18 @@ export function createEventHandlers(context: EventHandlerContext) {
       return;
     }
     const evt = payload as AgentEvent;
-    debugLog(
-      `Agent Event Received: ${evt.stream} - RunID: ${evt.runId} - Data: ${JSON.stringify(evt.data)}`,
-    );
     syncSessionKey();
-
-    // Relaxed check: allow tool events if we've seen this runId in this session
-    // or if it's the active run. This prevents missing tool outputs during
-    // run initialization.
-    const isRelevantRun = evt.runId === state.activeChatRunId || sessionRuns.has(evt.runId);
-    if (!isRelevantRun) {
+    // Agent events (tool streaming, lifecycle) are emitted per-run. Filter against the
+    // active chat run id, not the session id.
+    const isActiveRun = evt.runId === state.activeChatRunId;
+    if (!isActiveRun && !sessionRuns.has(evt.runId)) {
       return;
     }
-
-    const isActiveRun = evt.runId === state.activeChatRunId;
-
     if (evt.stream === "tool") {
       const data = evt.data ?? {};
       const phase = asString(data.phase, "");
       const toolCallId = asString(data.toolCallId, "");
       const toolName = asString(data.name, "tool");
-      debugLog(`Tool Event: ${toolName} (${phase}) - ID: ${toolCallId}`);
       if (!toolCallId) {
         return;
       }
