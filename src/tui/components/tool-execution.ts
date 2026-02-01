@@ -35,6 +35,13 @@ function formatArgs(toolName: string, args: unknown): string {
 
 function extractText(result?: ToolResult): string {
   if (!result?.content) {
+    if (result?.details) {
+      try {
+        return JSON.stringify(result.details, null, 2);
+      } catch {
+        return "";
+      }
+    }
     return "";
   }
   const lines: string[] = [];
@@ -122,15 +129,14 @@ export class ToolExecutionComponent extends Container {
     const argLine = formatArgs(this.toolName, this.args);
     this.argsLine.setText(argLine ? theme.dim(argLine) : theme.dim(" "));
 
-    const raw = extractText(this.result);
-    const text = raw || (this.isPartial ? "…" : "");
-    if (!this.expanded && text) {
+    const text = extractText(this.result) || (this.isPartial ? "…" : "");
+    if (this.expanded) {
+      this.output.setText(text);
+    } else {
       const lines = text.split("\n");
       const preview =
         lines.length > PREVIEW_LINES ? `${lines.slice(0, PREVIEW_LINES).join("\n")}\n…` : text;
       this.output.setText(preview);
-    } else {
-      this.output.setText(text);
     }
   }
 }
