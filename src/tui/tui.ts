@@ -94,7 +94,7 @@ export async function runTui(opts: TuiOptions) {
   let isConnected = false;
   let wasDisconnected = false;
   let toolsExpanded = config.ui?.toolsExpanded ?? true;
-  let showThinking = config.ui?.showThinking ?? false;
+  let showThinking = config.ui?.showThinking ?? true;
 
   const deliverDefault = opts.deliver ?? false;
   const autoMessage = opts.message?.trim();
