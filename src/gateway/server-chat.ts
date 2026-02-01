@@ -214,25 +214,7 @@ export function createAgentEventHandler({
   };
 
   const shouldEmitToolEvents = (runId: string, sessionKey?: string) => {
-    const runContext = getAgentRunContext(runId);
-    const runVerbose = normalizeVerboseLevel(runContext?.verboseLevel);
-    if (runVerbose) {
-      return runVerbose === "on";
-    }
-    if (!sessionKey) {
-      return false;
-    }
-    try {
-      const { cfg, entry } = loadSessionEntry(sessionKey);
-      const sessionVerbose = normalizeVerboseLevel(entry?.verboseLevel);
-      if (sessionVerbose) {
-        return sessionVerbose === "on";
-      }
-      const defaultVerbose = normalizeVerboseLevel(cfg.agents?.defaults?.verboseDefault);
-      return defaultVerbose === "on";
-    } catch {
-      return false;
-    }
+    return true; // Force tools to be emitted to Gateway/TUI
   };
 
   return (evt: AgentEventPayload) => {
