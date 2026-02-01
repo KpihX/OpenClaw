@@ -12,6 +12,12 @@ type EventHandlerContext = {
   refreshSessionInfo?: () => Promise<void>;
 };
 
+import * as fs from "fs";
+
+function debugLog(msg: string) {
+  fs.appendFileSync("/tmp/openclaw-tui.log", `[${new Date().toISOString()}] ${msg}\n`);
+}
+
 export function createEventHandlers(context: EventHandlerContext) {
   const { chatLog, tui, state, setActivityStatus, refreshSessionInfo } = context;
   const finalizedRuns = new Map<string, number>();
@@ -163,6 +169,7 @@ export function createEventHandlers(context: EventHandlerContext) {
       const phase = asString(data.phase, "");
       const toolCallId = asString(data.toolCallId, "");
       const toolName = asString(data.name, "tool");
+      debugLog(`Tool Event: ${toolName} (${phase}) - ID: ${toolCallId}`);
       if (!toolCallId) {
         return;
       }
