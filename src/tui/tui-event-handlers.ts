@@ -75,6 +75,7 @@ export function createEventHandlers(context: EventHandlerContext) {
       return;
     }
     const evt = payload as ChatEvent;
+    debugLog(`Chat Event Received: ${evt.state} - RunID: ${evt.runId}`);
     syncSessionKey();
     if (evt.sessionKey !== state.currentSessionKey) {
       return;
@@ -152,6 +153,7 @@ export function createEventHandlers(context: EventHandlerContext) {
       return;
     }
     const evt = payload as AgentEvent;
+    debugLog(`Agent Event Received: ${evt.stream} - RunID: ${evt.runId}`);
     syncSessionKey();
 
     // Relaxed check: allow tool events if we've seen this runId in this session
