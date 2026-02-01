@@ -236,6 +236,7 @@ export async function runTui(opts: TuiOptions) {
   const statusContainer = new Container();
   const footer = new Text("", 1, 0);
   const chatLog = new ChatLog();
+  chatLog.setToolsExpanded(toolsExpanded);
   const editor = new CustomEditor(tui, editorTheme);
   const root = new Container();
   root.addChild(header);
