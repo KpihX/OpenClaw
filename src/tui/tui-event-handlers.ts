@@ -147,12 +147,17 @@ export function createEventHandlers(context: EventHandlerContext) {
     }
     const evt = payload as AgentEvent;
     syncSessionKey();
-    // Agent events (tool streaming, lifecycle) are emitted per-run. Filter against the
-    // active chat run id, not the session id.
-    const isActiveRun = evt.runId === state.activeChatRunId;
-    if (!isActiveRun && !sessionRuns.has(evt.runId)) {
+
+    // Relaxed check: allow tool events if we've seen this runId in this session
+    // or if it's the active run. This prevents missing tool outputs during
+    // run initialization.
+    const isRelevantRun = evt.runId === state.activeChatRunId || sessionRuns.has(evt.runId);
+    if (!isRelevantRun) {
       return;
     }
+
+    const isActiveRun = evt.runId === state.activeChatRunId;
+
     if (evt.stream === "tool") {
       const data = evt.data ?? {};
       const phase = asString(data.phase, "");
