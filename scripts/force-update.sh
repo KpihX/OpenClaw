@@ -8,9 +8,11 @@ echo "➡️  Starting manual force update in $REPO_DIR..."
 
 cd "$REPO_DIR" || exit 1
 
-# 1. Pull latest changes
-echo "📥 Pulling latest changes from git..."
-git pull
+# 1. Fetch and Merge latest changes from official repo
+echo "📥 Fetching latest changes from upstream (official)..."
+git fetch upstream
+echo "🔀 Merging changes from upstream/main..."
+git merge upstream/main --no-edit
 
 # 2. Install dependencies
 # Using --ignore-scripts to avoid EACCES issues with completion scripts during automated runs
