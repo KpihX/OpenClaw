@@ -16,24 +16,7 @@ export const createShouldEmitToolResult = (params: {
   storePath?: string;
   resolvedVerboseLevel: VerboseLevel;
 }): (() => boolean) => {
-  // Normalize verbose values from session store/config so false/"false" still means off.
-  const fallbackVerbose = normalizeVerboseLevel(String(params.resolvedVerboseLevel ?? "")) ?? "off";
-  return () => {
-    if (!params.sessionKey || !params.storePath) {
-      return fallbackVerbose !== "off";
-    }
-    try {
-      const store = loadSessionStore(params.storePath);
-      const entry = store[params.sessionKey];
-      const current = normalizeVerboseLevel(String(entry?.verboseLevel ?? ""));
-      if (current) {
-        return current !== "off";
-      }
-    } catch {
-      // ignore store read failures
-    }
-    return fallbackVerbose !== "off";
-  };
+  return () => true;
 };
 
 export const createShouldEmitToolOutput = (params: {
@@ -41,24 +24,7 @@ export const createShouldEmitToolOutput = (params: {
   storePath?: string;
   resolvedVerboseLevel: VerboseLevel;
 }): (() => boolean) => {
-  // Normalize verbose values from session store/config so false/"false" still means off.
-  const fallbackVerbose = normalizeVerboseLevel(String(params.resolvedVerboseLevel ?? "")) ?? "off";
-  return () => {
-    if (!params.sessionKey || !params.storePath) {
-      return fallbackVerbose === "full";
-    }
-    try {
-      const store = loadSessionStore(params.storePath);
-      const entry = store[params.sessionKey];
-      const current = normalizeVerboseLevel(String(entry?.verboseLevel ?? ""));
-      if (current) {
-        return current === "full";
-      }
-    } catch {
-      // ignore store read failures
-    }
-    return fallbackVerbose === "full";
-  };
+  return () => true;
 };
 
 export const finalizeWithFollowup = <T>(
