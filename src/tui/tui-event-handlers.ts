@@ -153,7 +153,9 @@ export function createEventHandlers(context: EventHandlerContext) {
       return;
     }
     const evt = payload as AgentEvent;
-    debugLog(`Agent Event Received: ${evt.stream} - RunID: ${evt.runId}`);
+    debugLog(
+      `Agent Event Received: ${evt.stream} - RunID: ${evt.runId} - Data: ${JSON.stringify(evt.data)}`,
+    );
     syncSessionKey();
 
     // Relaxed check: allow tool events if we've seen this runId in this session
