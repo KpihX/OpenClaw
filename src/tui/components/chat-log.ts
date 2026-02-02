@@ -77,29 +77,11 @@ export class ChatLog extends Container {
     }
 
     const effectiveRunId = this.resolveRunId(runId);
-    const oldOffset = this.runTextOffsets.get(effectiveRunId) ?? 0;
-    const fullText = currentFullText ?? "";
 
-    // Robust Interleaving: Find a safe breaking point (last space or newline)
-    // to avoid splitting words like "supplémentaires" between blocks.
-    if (fullText.length > oldOffset) {
-      const lastSpace = fullText.lastIndexOf(" ");
-      const lastNewline = fullText.lastIndexOf("\n");
-      let safeBreak = Math.max(lastSpace, lastNewline);
-
-      // If we found a safe break point after the previous offset, use it.
-      // Otherwise, we just have to split where we are.
-      if (safeBreak > oldOffset) {
-        this.runTextOffsets.set(effectiveRunId, safeBreak);
-        const activeAssistant = this.streamingRuns.get(effectiveRunId);
-        if (activeAssistant) {
-          activeAssistant.setText(fullText.slice(oldOffset, safeBreak));
-        }
-      } else {
-        this.runTextOffsets.set(effectiveRunId, fullText.length);
-      }
+    // Capture the exact current text length as offset for the next segment.
+    if (currentFullText) {
+      this.runTextOffsets.set(effectiveRunId, currentFullText.length);
     }
-
     this.streamingRuns.delete(effectiveRunId);
 
     const component = new ToolExecutionComponent(toolName, args);
@@ -109,6 +91,7 @@ export class ChatLog extends Container {
 
     return component;
   }
+
   updateToolArgs(toolCallId: string, args: unknown) {
     const existing = this.toolById.get(toolCallId);
     if (!existing) {
