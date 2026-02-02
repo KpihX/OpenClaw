@@ -35,14 +35,11 @@ export class ChatLog extends Container {
     const offset = this.runTextOffsets.get(effectiveRunId) ?? 0;
 
     let content = text.slice(offset);
-    // If we are in a thinking block (header present at start of full text),
-    // and our segment doesn't have it (because of offset), prepend it to maintain style.
+    // If we are in a thinking block, ensure consistency
     if (text.startsWith("[thinking]\n") && offset > 0 && !content.startsWith("[thinking]\n")) {
-      // Only prepend if we haven't switched to content mode yet
-      // (content mode starts after double newline)
       const thinkingEnd = text.indexOf("\n\n");
       if (thinkingEnd === -1 || offset < thinkingEnd) {
-        content = `[thinking]\n${content.trimStart()}`;
+        content = `[thinking]\n${content}`;
       }
     }
 
@@ -65,7 +62,7 @@ export class ChatLog extends Container {
     if (text.startsWith("[thinking]\n") && offset > 0 && !content.startsWith("[thinking]\n")) {
       const thinkingEnd = text.indexOf("\n\n");
       if (thinkingEnd === -1 || offset < thinkingEnd) {
-        content = `[thinking]\n${content.trimStart()}`;
+        content = `[thinking]\n${content}`;
       }
     }
     existing.setText(content);
@@ -101,17 +98,15 @@ export class ChatLog extends Container {
     const oldOffset = this.runTextOffsets.get(effectiveRunId) ?? 0;
     const fullText = currentFullText ?? "";
 
-    // Robust Safe-Breaking: Find the last space or newline to avoid cutting words.
     if (fullText.length > oldOffset) {
+      // Find last clean boundary
       const lastSpace = fullText.lastIndexOf(" ");
       const lastNewline = fullText.lastIndexOf("\n");
       const lastBoundary = Math.max(lastSpace, lastNewline);
 
-      // We only break at boundary if it's actually ahead of our previous offset
       const cutPoint = lastBoundary > oldOffset ? lastBoundary : fullText.length;
       this.runTextOffsets.set(effectiveRunId, cutPoint);
 
-      // Finalize the previous segment with the clean cut
       const activeAssistant = this.streamingRuns.get(effectiveRunId);
       if (activeAssistant) {
         let prevContent = fullText.slice(oldOffset, cutPoint);
@@ -120,7 +115,7 @@ export class ChatLog extends Container {
           oldOffset > 0 &&
           !prevContent.startsWith("[thinking]\n")
         ) {
-          prevContent = `[thinking]\n${prevContent.trimStart()}`;
+          prevContent = `[thinking]\n${prevContent}`;
         }
         activeAssistant.setText(prevContent);
       }
@@ -137,7 +132,6 @@ export class ChatLog extends Container {
 
     return component;
   }
-
   updateToolArgs(toolCallId: string, args: unknown) {
     const existing = this.toolById.get(toolCallId);
     if (!existing) {

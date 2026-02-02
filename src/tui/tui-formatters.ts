@@ -32,7 +32,7 @@ export function composeThinkingAndContent(params: {
     parts.push(contentText);
   }
 
-  return parts.join("\n\n").trim();
+  return parts.join("\n\n");
 }
 
 /**
