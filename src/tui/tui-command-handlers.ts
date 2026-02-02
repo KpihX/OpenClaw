@@ -233,7 +233,6 @@ export function createCommandHandlers(context: CommandHandlerContext) {
     }
     switch (name) {
       case "help":
-      case "commands":
         chatLog.addSystem(
           helpText({
             provider: state.sessionInfo.modelProvider,

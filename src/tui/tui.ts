@@ -573,6 +573,10 @@ export async function runTui(opts: TuiOptions) {
   };
   editor.onCtrlC = () => {
     const now = Date.now();
+
+    // Always attempt to abort active run on Ctrl+C
+    void abortActive();
+
     if (editor.getText().trim().length > 0) {
       editor.setText("");
       setActivityStatus("cleared input");
