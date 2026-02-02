@@ -8,6 +8,7 @@ export class ChatLog extends Container {
   private toolById = new Map<string, ToolExecutionComponent>();
   private streamingRuns = new Map<string, AssistantMessageComponent>();
   private runTextOffsets = new Map<string, number>();
+  private runLastTextLength = new Map<string, number>();
   private toolsExpanded = false;
 
   clearAll() {
@@ -15,6 +16,7 @@ export class ChatLog extends Container {
     this.toolById.clear();
     this.streamingRuns.clear();
     this.runTextOffsets.clear();
+    this.runLastTextLength.clear();
   }
 
   addSystem(text: string) {
@@ -35,18 +37,20 @@ export class ChatLog extends Container {
     const offset = this.runTextOffsets.get(effectiveRunId) ?? 0;
     const component = new AssistantMessageComponent(text.slice(offset));
     this.streamingRuns.set(effectiveRunId, component);
+    this.runLastTextLength.set(effectiveRunId, text.length);
     this.addChild(component);
     return component;
   }
 
   updateAssistant(text: string, runId?: string) {
     const effectiveRunId = this.resolveRunId(runId);
+    this.runLastTextLength.set(effectiveRunId, text.length);
     const existing = this.streamingRuns.get(effectiveRunId);
+    const offset = this.runTextOffsets.get(effectiveRunId) ?? 0;
     if (!existing) {
       this.startAssistant(text, runId);
       return;
     }
-    const offset = this.runTextOffsets.get(effectiveRunId) ?? 0;
     existing.setText(text.slice(offset));
   }
 
@@ -58,6 +62,7 @@ export class ChatLog extends Container {
       existing.setText(text.slice(offset));
       this.streamingRuns.delete(effectiveRunId);
       this.runTextOffsets.delete(effectiveRunId);
+      this.runLastTextLength.delete(effectiveRunId);
       return;
     }
     this.addChild(new AssistantMessageComponent(text.slice(offset)));
@@ -72,14 +77,12 @@ export class ChatLog extends Container {
 
     const effectiveRunId = this.resolveRunId(runId);
 
-    // Capture current text length as offset for the next assistant segment.
-    const activeAssistant = this.streamingRuns.get(effectiveRunId);
-    if (activeAssistant) {
-      const currentOffset = this.runTextOffsets.get(effectiveRunId) ?? 0;
-      const segmentLength = activeAssistant.getText().length;
-      this.runTextOffsets.set(effectiveRunId, currentOffset + segmentLength);
-      this.streamingRuns.delete(effectiveRunId);
+    // Precisely capture the current text length before starting the tool
+    const lastLength = this.runLastTextLength.get(effectiveRunId) ?? 0;
+    if (lastLength > 0) {
+      this.runTextOffsets.set(effectiveRunId, lastLength);
     }
+    this.streamingRuns.delete(effectiveRunId);
 
     const component = new ToolExecutionComponent(toolName, args);
     component.setExpanded(this.toolsExpanded);
