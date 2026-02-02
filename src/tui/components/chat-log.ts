@@ -7,12 +7,14 @@ import { UserMessageComponent } from "./user-message.js";
 export class ChatLog extends Container {
   private toolById = new Map<string, ToolExecutionComponent>();
   private streamingRuns = new Map<string, AssistantMessageComponent>();
+  private runTextOffsets = new Map<string, number>();
   private toolsExpanded = false;
 
   clearAll() {
     this.clear();
     this.toolById.clear();
     this.streamingRuns.clear();
+    this.runTextOffsets.clear();
   }
 
   addSystem(text: string) {
@@ -29,8 +31,10 @@ export class ChatLog extends Container {
   }
 
   startAssistant(text: string, runId?: string) {
-    const component = new AssistantMessageComponent(text);
-    this.streamingRuns.set(this.resolveRunId(runId), component);
+    const effectiveRunId = this.resolveRunId(runId);
+    const offset = this.runTextOffsets.get(effectiveRunId) ?? 0;
+    const component = new AssistantMessageComponent(text.slice(offset));
+    this.streamingRuns.set(effectiveRunId, component);
     this.addChild(component);
     return component;
   }
@@ -42,18 +46,21 @@ export class ChatLog extends Container {
       this.startAssistant(text, runId);
       return;
     }
-    existing.setText(text);
+    const offset = this.runTextOffsets.get(effectiveRunId) ?? 0;
+    existing.setText(text.slice(offset));
   }
 
   finalizeAssistant(text: string, runId?: string) {
     const effectiveRunId = this.resolveRunId(runId);
     const existing = this.streamingRuns.get(effectiveRunId);
+    const offset = this.runTextOffsets.get(effectiveRunId) ?? 0;
     if (existing) {
-      existing.setText(text);
+      existing.setText(text.slice(offset));
       this.streamingRuns.delete(effectiveRunId);
+      this.runTextOffsets.delete(effectiveRunId);
       return;
     }
-    this.addChild(new AssistantMessageComponent(text));
+    this.addChild(new AssistantMessageComponent(text.slice(offset)));
   }
 
   startTool(toolCallId: string, toolName: string, args: unknown, runId?: string) {
@@ -62,25 +69,25 @@ export class ChatLog extends Container {
       existing.setArgs(args);
       return existing;
     }
+
+    const effectiveRunId = this.resolveRunId(runId);
+
+    // Capture current text length as offset for the next assistant segment.
+    const activeAssistant = this.streamingRuns.get(effectiveRunId);
+    if (activeAssistant) {
+      const currentOffset = this.runTextOffsets.get(effectiveRunId) ?? 0;
+      const segmentLength = activeAssistant.getText().length;
+      this.runTextOffsets.set(effectiveRunId, currentOffset + segmentLength);
+      this.streamingRuns.delete(effectiveRunId);
+    }
+
     const component = new ToolExecutionComponent(toolName, args);
     component.setExpanded(this.toolsExpanded);
     this.toolById.set(toolCallId, component);
-
-    // Order management: if there's an active assistant streaming for this run,
-    // we want the tool to appear ABOVE it.
-    const effectiveRunId = this.resolveRunId(runId);
-    const activeAssistant = this.streamingRuns.get(effectiveRunId);
-    if (activeAssistant) {
-      this.removeChild(activeAssistant);
-      this.addChild(component);
-      this.addChild(activeAssistant);
-    } else {
-      this.addChild(component);
-    }
+    this.addChild(component);
 
     return component;
   }
-
   updateToolArgs(toolCallId: string, args: unknown) {
     const existing = this.toolById.get(toolCallId);
     if (!existing) {
