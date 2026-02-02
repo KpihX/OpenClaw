@@ -16,6 +16,7 @@ export function createEventHandlers(context: EventHandlerContext) {
   const { chatLog, tui, state, setActivityStatus, refreshSessionInfo } = context;
   const finalizedRuns = new Map<string, number>();
   const sessionRuns = new Map<string, number>();
+  const runFullText = new Map<string, string>();
   let streamAssembler = new TuiStreamAssembler();
   let lastSessionKey = state.currentSessionKey;
 
@@ -49,6 +50,7 @@ export function createEventHandlers(context: EventHandlerContext) {
     lastSessionKey = state.currentSessionKey;
     finalizedRuns.clear();
     sessionRuns.clear();
+    runFullText.clear();
     streamAssembler = new TuiStreamAssembler();
   };
 
@@ -60,6 +62,7 @@ export function createEventHandlers(context: EventHandlerContext) {
   const noteFinalizedRun = (runId: string) => {
     finalizedRuns.set(runId, Date.now());
     sessionRuns.delete(runId);
+    runFullText.delete(runId);
     streamAssembler.drop(runId);
     pruneRunMap(finalizedRuns);
   };
@@ -90,6 +93,7 @@ export function createEventHandlers(context: EventHandlerContext) {
       if (!displayText) {
         return;
       }
+      runFullText.set(evt.runId, displayText);
       chatLog.updateAssistant(displayText, evt.runId);
       setActivityStatus("streaming");
     }
@@ -126,6 +130,7 @@ export function createEventHandlers(context: EventHandlerContext) {
       chatLog.addSystem("run aborted");
       streamAssembler.drop(evt.runId);
       sessionRuns.delete(evt.runId);
+      runFullText.delete(evt.runId);
       state.activeChatRunId = null;
       setActivityStatus("aborted");
       void refreshSessionInfo?.();
@@ -134,6 +139,7 @@ export function createEventHandlers(context: EventHandlerContext) {
       chatLog.addSystem(`run error: ${evt.errorMessage ?? "unknown"}`);
       streamAssembler.drop(evt.runId);
       sessionRuns.delete(evt.runId);
+      runFullText.delete(evt.runId);
       state.activeChatRunId = null;
       setActivityStatus("error");
       void refreshSessionInfo?.();
@@ -162,7 +168,8 @@ export function createEventHandlers(context: EventHandlerContext) {
         return;
       }
       if (phase === "start") {
-        chatLog.startTool(toolCallId, toolName, data.args, evt.runId);
+        const currentText = runFullText.get(evt.runId);
+        chatLog.startTool(toolCallId, toolName, data.args, evt.runId, currentText);
       } else if (phase === "update") {
         chatLog.updateToolResult(toolCallId, data.partialResult, {
           partial: true,

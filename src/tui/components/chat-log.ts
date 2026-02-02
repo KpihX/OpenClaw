@@ -8,7 +8,6 @@ export class ChatLog extends Container {
   private toolById = new Map<string, ToolExecutionComponent>();
   private streamingRuns = new Map<string, AssistantMessageComponent>();
   private runTextOffsets = new Map<string, number>();
-  private runLastTextLength = new Map<string, number>();
   private toolsExpanded = false;
 
   clearAll() {
@@ -16,7 +15,6 @@ export class ChatLog extends Container {
     this.toolById.clear();
     this.streamingRuns.clear();
     this.runTextOffsets.clear();
-    this.runLastTextLength.clear();
   }
 
   addSystem(text: string) {
@@ -37,14 +35,12 @@ export class ChatLog extends Container {
     const offset = this.runTextOffsets.get(effectiveRunId) ?? 0;
     const component = new AssistantMessageComponent(text.slice(offset));
     this.streamingRuns.set(effectiveRunId, component);
-    this.runLastTextLength.set(effectiveRunId, text.length);
     this.addChild(component);
     return component;
   }
 
   updateAssistant(text: string, runId?: string) {
     const effectiveRunId = this.resolveRunId(runId);
-    this.runLastTextLength.set(effectiveRunId, text.length);
     const existing = this.streamingRuns.get(effectiveRunId);
     const offset = this.runTextOffsets.get(effectiveRunId) ?? 0;
     if (!existing) {
@@ -62,13 +58,18 @@ export class ChatLog extends Container {
       existing.setText(text.slice(offset));
       this.streamingRuns.delete(effectiveRunId);
       this.runTextOffsets.delete(effectiveRunId);
-      this.runLastTextLength.delete(effectiveRunId);
       return;
     }
     this.addChild(new AssistantMessageComponent(text.slice(offset)));
   }
 
-  startTool(toolCallId: string, toolName: string, args: unknown, runId?: string) {
+  startTool(
+    toolCallId: string,
+    toolName: string,
+    args: unknown,
+    runId?: string,
+    currentFullText?: string,
+  ) {
     const existing = this.toolById.get(toolCallId);
     if (existing) {
       existing.setArgs(args);
@@ -76,12 +77,29 @@ export class ChatLog extends Container {
     }
 
     const effectiveRunId = this.resolveRunId(runId);
+    const oldOffset = this.runTextOffsets.get(effectiveRunId) ?? 0;
+    const fullText = currentFullText ?? "";
 
-    // Precisely capture the current text length before starting the tool
-    const lastLength = this.runLastTextLength.get(effectiveRunId) ?? 0;
-    if (lastLength > 0) {
-      this.runTextOffsets.set(effectiveRunId, lastLength);
+    // Robust Interleaving: Find a safe breaking point (last space or newline)
+    // to avoid splitting words like "supplémentaires" between blocks.
+    if (fullText.length > oldOffset) {
+      const lastSpace = fullText.lastIndexOf(" ");
+      const lastNewline = fullText.lastIndexOf("\n");
+      let safeBreak = Math.max(lastSpace, lastNewline);
+
+      // If we found a safe break point after the previous offset, use it.
+      // Otherwise, we just have to split where we are.
+      if (safeBreak > oldOffset) {
+        this.runTextOffsets.set(effectiveRunId, safeBreak);
+        const activeAssistant = this.streamingRuns.get(effectiveRunId);
+        if (activeAssistant) {
+          activeAssistant.setText(fullText.slice(oldOffset, safeBreak));
+        }
+      } else {
+        this.runTextOffsets.set(effectiveRunId, fullText.length);
+      }
     }
+
     this.streamingRuns.delete(effectiveRunId);
 
     const component = new ToolExecutionComponent(toolName, args);
