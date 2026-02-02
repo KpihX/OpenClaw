@@ -47,6 +47,7 @@ export type GatewaySessionList = {
     verboseLevel?: string;
     reasoningLevel?: string;
     sendPolicy?: string;
+    summary?: string;
     model?: string;
     contextTokens?: number | null;
     inputTokens?: number | null;

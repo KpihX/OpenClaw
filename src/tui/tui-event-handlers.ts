@@ -119,6 +119,7 @@ export function createEventHandlers(context: EventHandlerContext) {
           : "";
 
       const finalText = streamAssembler.finalize(evt.runId, evt.message, state.showThinking);
+      runFullText.set(evt.runId, finalText);
       chatLog.finalizeAssistant(finalText, evt.runId);
       noteFinalizedRun(evt.runId);
       state.activeChatRunId = null;

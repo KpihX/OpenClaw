@@ -161,6 +161,10 @@ export function deriveSessionTitle(
     return entry.displayName.trim();
   }
 
+  if (entry.summary?.trim()) {
+    return entry.summary.trim();
+  }
+
   if (entry.subject?.trim()) {
     return entry.subject.trim();
   }
@@ -644,6 +648,7 @@ export function listSessionsFromStore(params: {
         reasoningLevel: entry?.reasoningLevel,
         elevatedLevel: entry?.elevatedLevel,
         sendPolicy: entry?.sendPolicy,
+        summary: entry?.summary,
         inputTokens: entry?.inputTokens,
         outputTokens: entry?.outputTokens,
         totalTokens: total,

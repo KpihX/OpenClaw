@@ -33,6 +33,7 @@ import {
 import { runMemoryFlushIfNeeded } from "./agent-runner-memory.js";
 import { buildReplyPayloads } from "./agent-runner-payloads.js";
 import { appendUsageLine, formatResponseUsageLine } from "./agent-runner-utils.js";
+import { autoSummarizeSession } from "./auto-summarize.js";
 import { createAudioAsVoiceBuffer, createBlockReplyPipeline } from "./block-reply-pipeline.js";
 import { resolveBlockStreamingCoalescing } from "./block-streaming.js";
 import { createFollowupRunner } from "./followup-runner.js";
@@ -510,6 +511,21 @@ export async function runReplyAgent(params: {
     }
     if (responseUsageLine) {
       finalPayloads = appendUsageLine(finalPayloads, responseUsageLine);
+    }
+
+    // Trigger auto-summary in background if no summary exists yet
+    if (
+      sessionKey &&
+      storePath &&
+      activeSessionEntry &&
+      !activeSessionEntry.summary &&
+      !activeSessionEntry.displayName
+    ) {
+      void autoSummarizeSession({
+        sessionKey,
+        storePath,
+        entry: activeSessionEntry,
+      });
     }
 
     return finalizeWithFollowup(
