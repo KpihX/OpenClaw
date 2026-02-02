@@ -56,7 +56,7 @@ export class ChatLog extends Container {
     this.addChild(new AssistantMessageComponent(text));
   }
 
-  startTool(toolCallId: string, toolName: string, args: unknown) {
+  startTool(toolCallId: string, toolName: string, args: unknown, runId?: string) {
     const existing = this.toolById.get(toolCallId);
     if (existing) {
       existing.setArgs(args);
@@ -65,7 +65,19 @@ export class ChatLog extends Container {
     const component = new ToolExecutionComponent(toolName, args);
     component.setExpanded(this.toolsExpanded);
     this.toolById.set(toolCallId, component);
-    this.addChild(component);
+
+    // Order management: if there's an active assistant streaming for this run,
+    // we want the tool to appear ABOVE it.
+    const effectiveRunId = this.resolveRunId(runId);
+    const activeAssistant = this.streamingRuns.get(effectiveRunId);
+    if (activeAssistant) {
+      this.removeChild(activeAssistant);
+      this.addChild(component);
+      this.addChild(activeAssistant);
+    } else {
+      this.addChild(component);
+    }
+
     return component;
   }
 

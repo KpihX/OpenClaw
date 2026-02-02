@@ -162,7 +162,7 @@ export function createEventHandlers(context: EventHandlerContext) {
         return;
       }
       if (phase === "start") {
-        chatLog.startTool(toolCallId, toolName, data.args);
+        chatLog.startTool(toolCallId, toolName, data.args, evt.runId);
       } else if (phase === "update") {
         chatLog.updateToolResult(toolCallId, data.partialResult, {
           partial: true,
